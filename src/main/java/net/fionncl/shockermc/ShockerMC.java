@@ -58,18 +58,13 @@ public final class ShockerMC {
     @Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents {
         public static CloseableHttpClient httpclient = HttpClients.createDefault();
-        public static float playerHealth;
+        public static float playerHealth = 0.0F;
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             // Some client setup code
             //LOGGER.info("HELLO FROM CLIENT SETUP");
             //LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
-
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null && mc.level == null) return;
-            Player player = mc.player;
-            playerHealth =  player.getHealth();
         }
 
         @SubscribeEvent
@@ -90,13 +85,14 @@ public final class ShockerMC {
                 //Execute and get the response.
                 HttpResponse response = null;
                 try {
-                    response = httpclient.execute(httppost);
+                    // response =
+                    httpclient.execute(httppost);
                 } catch (IOException e) {
                     LOGGER.debug("Httpclient POST execution failed");
                 }
 
+/*
                 HttpEntity entity = response.getEntity();
-
                 if (entity != null) {
                     try (InputStream instream = entity.getContent()) {
                         // do something useful
@@ -105,6 +101,8 @@ public final class ShockerMC {
                         LOGGER.debug("HttpEntity returned null");
                     }
                 }
+*/
+
             }
 
             playerHealth = health;
