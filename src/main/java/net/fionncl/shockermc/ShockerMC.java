@@ -1,10 +1,11 @@
-package net.example.examplemod;
+package net.fionncl.shockermc;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -13,23 +14,32 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 
 // The value here should match an entry in the META-INF/mods.toml file
-@Mod(ExampleMod.MODID)
-public final class ExampleMod {
+@Mod(ShockerMC.MODID)
+public final class ShockerMC {
     // Define mod id in a common place for everything to reference
-    public static final String MODID = "examplemod";
+    public static final String MODID = "shockermc";
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static final String OUTPUT_FILE = "health_output.txt";
-
-    public ExampleMod(FMLJavaModLoadingContext context) {
+    public ShockerMC(FMLJavaModLoadingContext context) {
         var modBusGroup = context.getModBusGroup();
 
         // Register the commonSetup method for modloading
@@ -42,25 +52,24 @@ public final class ExampleMod {
     private void commonSetup(final FMLCommonSetupEvent event) {
         // Some common setup code
         LOGGER.info("HELLO FROM COMMON SETUP");
-
-        if (Config.logDirtBlock)
-            LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
-
-        LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
-
-        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents {
-        public static float playerHealth = 20.0F;
+        public static CloseableHttpClient httpclient = HttpClients.createDefault();
+        public static float playerHealth;
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             // Some client setup code
-            LOGGER.info("HELLO FROM CLIENT SETUP");
-            LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+            //LOGGER.info("HELLO FROM CLIENT SETUP");
+            //LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null && mc.level == null) return;
+            Player player = mc.player;
+            playerHealth =  player.getHealth();
         }
 
         @SubscribeEvent
@@ -73,13 +82,32 @@ public final class ExampleMod {
             float health = player.getHealth();
 
             if(health < playerHealth) {
-                LOGGER.debug("Health Lost: " + String.valueOf(playerHealth - health));
-                LOGGER.debug("Current Health: " + String.valueOf(health));
+                HttpPost httppost = new HttpPost("http://192.168.0.135/shock/");
+
+                LOGGER.debug("Health Lost: {}", String.valueOf(playerHealth - health));
+                LOGGER.debug("Current Health: {}", String.valueOf(health));
+
+                //Execute and get the response.
+                HttpResponse response = null;
+                try {
+                    response = httpclient.execute(httppost);
+                } catch (IOException e) {
+                    LOGGER.debug("Httpclient POST execution failed");
+                }
+
+                HttpEntity entity = response.getEntity();
+
+                if (entity != null) {
+                    try (InputStream instream = entity.getContent()) {
+                        // do something useful
+                        LOGGER.debug("Shocked!");
+                    } catch (IOException e) {
+                        LOGGER.debug("HttpEntity returned null");
+                    }
+                }
             }
 
             playerHealth = health;
-
-            //System.out.println(health);
         }
     }
 }
