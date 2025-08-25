@@ -18,12 +18,14 @@ public class Config {
 
     static final ForgeConfigSpec SPEC = BUILDER.build();
 
+    public static String server_ip_address;
+
     private static boolean validateItemName(final Object obj) {
         return obj instanceof final String itemName && ForgeRegistries.ITEMS.containsKey(ResourceLocation.tryParse(itemName));
     }
 
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
-
+        server_ip_address = SERVER_IP_ADDRESS.get();
     }
 }
